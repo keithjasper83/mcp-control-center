@@ -6,6 +6,7 @@ Modern, offline-capable web interface for orchestrating multiple software projec
 
 - 🚀 **Multi-Language Project Management**: Manage projects across Python, JavaScript, Go, and more
 - 🤖 **MCP Integration**: Real-time updates from AI agents via Model Context Protocol
+- 🔗 **GitHub Integration**: Sync projects from GitHub, create repositories automatically
 - 📋 **Feature Tracking**: List, edit, and manage features, specs, refactors, and ADRs
 - 🛡️ **Quality Gates**: Enforce separation of concerns and coding standards
 - 📱 **PWA Support**: Works offline, installable on iPhone, iPad, and desktop
@@ -68,12 +69,33 @@ docker-compose up
 |----------|-------------|---------|
 | `MCP_BASE_URL` | MCP server base URL | `http://localhost:8001` |
 | `MCP_TOKEN` | MCP authentication token | - |
+| `GITHUB_TOKEN` | GitHub personal access token | - |
+| `GITHUB_SYNC_ENABLED` | Enable GitHub sync features | `False` |
 | `DATABASE_URL` | Database connection string | `sqlite:///./mcpcc.db` |
 | `SECRET_KEY` | Application secret key | `change-me-in-production` |
 | `DEBUG` | Debug mode | `False` |
 | `HOST` | Server host | `0.0.0.0` |
 | `PORT` | Server port | `8000` |
 | `REDIS_URL` | Redis connection URL | `redis://localhost:6379/0` |
+
+### GitHub Integration Setup
+
+To enable GitHub integration:
+
+1. Create a GitHub Personal Access Token:
+   - Go to GitHub Settings → Developer settings → Personal access tokens → Tokens (classic)
+   - Generate new token with `repo` scope
+   
+2. Add the token to your `.env` file:
+   ```
+   GITHUB_TOKEN=ghp_your_token_here
+   GITHUB_SYNC_ENABLED=True
+   ```
+
+3. Use the Projects page to:
+   - **Sync from GitHub**: Import all your GitHub repositories as projects
+   - **Create new project**: Optionally create a GitHub repository automatically
+   - **View linked repos**: Click GitHub icon to open repository
 
 ## CLI Commands
 

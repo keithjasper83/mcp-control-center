@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     MCP_BASE_URL: str = "http://localhost:8001"
     MCP_TOKEN: str = ""
 
+    # GitHub Integration
+    GITHUB_TOKEN: str = ""
+    GITHUB_SYNC_ENABLED: bool = False
+
     # Redis for job queue
     REDIS_URL: str = "redis://localhost:6379/0"
 
