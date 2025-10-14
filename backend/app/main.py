@@ -9,7 +9,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from app.api import adrs, agents, features, github, mcp, projects, proposals, refactors, reports, rules, specs
+from app.api import adrs, agents, documents, features, github, mcp, projects, proposals, refactors, reports, rules, specs
 from app.config import get_settings
 from app.database import init_db
 
@@ -52,6 +52,7 @@ app.include_router(rules.router)
 app.include_router(proposals.router)
 app.include_router(reports.router)
 app.include_router(agents.router)
+app.include_router(documents.router)
 app.include_router(mcp.router)
 app.include_router(github.router)
 
@@ -78,6 +79,12 @@ async def projects_page(request: Request) -> HTMLResponse:
 async def features_page(request: Request) -> HTMLResponse:
     """Features page."""
     return templates.TemplateResponse("features.html", {"request": request})
+
+
+@app.get("/documents", response_class=HTMLResponse)
+async def documents_page(request: Request) -> HTMLResponse:
+    """Documentation ingestion page."""
+    return templates.TemplateResponse("documents.html", {"request": request})
 
 
 @app.get("/health")
