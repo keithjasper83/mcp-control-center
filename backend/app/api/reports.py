@@ -31,7 +31,7 @@ async def get_soc_report(
         select(Rule).where(
             Rule.project_id == project_id,
             Rule.category == RuleCategory.SOC,
-            Rule.enabled == True,
+            Rule.enabled.is_(True),
         )
     )
     soc_rules = result.scalars().all()
