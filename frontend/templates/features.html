@@ -264,6 +264,8 @@
             
             showStatus('Feature created successfully', 'success');
             document.getElementById('create-feature-form').reset();
+            // Close the modal by setting Alpine.js state
+            document.querySelector('[x-data]').__x.$data.showCreateModal = false;
             await loadFeatures();
         } catch (error) {
             console.error('Error creating feature:', error);
