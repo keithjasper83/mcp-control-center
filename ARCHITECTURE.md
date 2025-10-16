@@ -1,231 +1,539 @@
-# Architecture Overview
+# MCP Control Center Architecture
 
-## System Design
+## Overview
 
-MCP Control Center is built as a modern web application with clear separation between backend and frontend concerns.
+The MCP Control Center is a web-based platform for managing multi-language software projects through the Model Control Protocol (MCP). It provides a modern interface for tracking Features, Specifications, Refactors, Architectural Decision Records (ADRs), and project Rules.
 
-### High-Level Architecture
+## Architecture Philosophy
+
+### Core Principles
+
+1. **Separation of Concerns**: Clear boundaries between domain logic, presentation, and integration
+2. **Clean Architecture**: Dependencies point inward toward domain models
+3. **Type Safety**: Full type hints throughout the codebase
+4. **Testability**: All components designed for easy testing
+5. **AI Extensibility**: Built to integrate with AI agents and automation
+
+### Design Patterns
+
+- **Repository Pattern**: Data access abstraction
+- **Service Layer**: Business logic encapsulation
+- **Dependency Injection**: Loose coupling between components
+- **API Gateway**: Single entry point for external integrations
+
+## System Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    Client (Browser)                     │
-│  ┌─────────────┐  ┌──────────────┐  ┌───────────────┐ │
-│  │   PWA UI    │  │ Service      │  │  Alpine.js    │ │
-│  │  (Jinja2)   │  │  Worker      │  │  HTMX         │ │
-│  └─────────────┘  └──────────────┘  └───────────────┘ │
-└───────────────────────────┬─────────────────────────────┘
-                            │ HTTP/WebSocket
-┌───────────────────────────┴─────────────────────────────┐
-│               FastAPI Application Server                │
-│  ┌─────────────┐  ┌──────────────┐  ┌───────────────┐ │
-│  │  API Routes │  │  Services    │  │  Views        │ │
-│  │  (REST)     │  │  Layer       │  │  (Jinja2)     │ │
-│  └─────────────┘  └──────────────┘  └───────────────┘ │
-└───────────────────────────┬─────────────────────────────┘
+│                     Presentation Layer                   │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
+│  │   Jinja2     │  │    HTMX      │  │  TailwindCSS │  │
+│  │  Templates   │  │  Dynamic UI  │  │    Styling   │  │
+│  └──────────────┘  └──────────────┘  └──────────────┘  │
+└─────────────────────────────────────────────────────────┘
                             │
-        ┌───────────────────┼───────────────────┐
-        │                   │                   │
-┌───────┴────────┐  ┌──────┴───────┐  ┌────────┴────────┐
-│  SQLite/       │  │  MCP Server  │  │  Redis Queue    │
-│  PostgreSQL    │  │  (External)  │  │  (Background)   │
-└────────────────┘  └──────────────┘  └─────────────────┘
+┌─────────────────────────────────────────────────────────┐
+│                      API Layer (FastAPI)                 │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
+│  │   Features   │  │    Specs     │  │  Refactors   │  │
+│  │   Endpoints  │  │  Endpoints   │  │  Endpoints   │  │
+│  └──────────────┘  └──────────────┘  └──────────────┘  │
+│  ┌──────────────┐  ┌──────────────┐                    │
+│  │     ADRs     │  │    Rules     │                    │
+│  │   Endpoints  │  │  Endpoints   │                    │
+│  └──────────────┘  └──────────────┘                    │
+└─────────────────────────────────────────────────────────┘
+                            │
+┌─────────────────────────────────────────────────────────┐
+│                     Service Layer                        │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
+│  │   Feature    │  │     Spec     │  │   Refactor   │  │
+│  │   Service    │  │   Service    │  │   Service    │  │
+│  └──────────────┘  └──────────────┘  └──────────────┘  │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
+│  │     ADR      │  │    Rules     │  │  MCP Client  │  │
+│  │   Service    │  │   Service    │  │   Service    │  │
+│  └──────────────┘  └──────────────┘  └──────────────┘  │
+└─────────────────────────────────────────────────────────┘
+                            │
+┌─────────────────────────────────────────────────────────┐
+│                      Domain Models                       │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
+│  │   Feature    │  │     Spec     │  │   Refactor   │  │
+│  │    Model     │  │    Model     │  │    Model     │  │
+│  └──────────────┘  └──────────────┘  └──────────────┘  │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
+│  │     ADR      │  │    Rule      │  │   Project    │  │
+│  │    Model     │  │    Model     │  │    Model     │  │
+│  └──────────────┘  └──────────────┘  └──────────────┘  │
+└─────────────────────────────────────────────────────────┘
+                            │
+┌─────────────────────────────────────────────────────────┐
+│                     Data Layer (SQLModel)                │
+│  ┌──────────────┐  ┌──────────────┐                    │
+│  │    SQLite    │  │  PostgreSQL  │                    │
+│  │   (Default)  │  │  (Optional)  │                    │
+│  └──────────────┘  └──────────────┘                    │
+└─────────────────────────────────────────────────────────┘
 ```
 
-## Component Architecture
+## External Integrations
 
-### Backend Layer (FastAPI)
+```
+┌─────────────────────────────────────────────────────────┐
+│                  External Systems                        │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
+│  │     MCP      │  │   Jarvis AI  │  │   AI Model   │  │
+│  │   Protocol   │  │    Agent     │  │     API      │  │
+│  └──────────────┘  └──────────────┘  └──────────────┘  │
+└─────────────────────────────────────────────────────────┘
+                            ▲
+                            │
+                    ┌───────┴───────┐
+                    │  MCP Client   │
+                    │    Service    │
+                    └───────────────┘
+```
 
-**API Routes** (`app/api/`)
-- RESTful endpoints for all entities
-- Request validation with Pydantic
-- Authentication middleware (token-based, WebAuthn-ready)
-- CORS configuration
+## Directory Structure
 
-**Services Layer** (`app/services/`)
-- `mcp_client.py`: MCP protocol integration
-- `soc_checks.py`: Separation of concerns analysis
-- `rules.py`: Quality gate enforcement
-- `reports.py`: Report generation
-- `proposals.py`: Change proposal management
+```
+mcp-control-center/
+├── app/
+│   ├── __init__.py
+│   ├── main.py                 # FastAPI application entry point
+│   ├── config.py               # Configuration management
+│   ├── database.py             # Database setup and session management
+│   │
+│   ├── api/                    # API endpoints
+│   │   ├── __init__.py
+│   │   ├── features.py         # Feature CRUD endpoints
+│   │   ├── specifications.py  # Specification endpoints
+│   │   ├── refactors.py       # Refactor endpoints
+│   │   ├── adrs.py            # ADR endpoints
+│   │   ├── rules.py           # Rule endpoints
+│   │   └── projects.py        # Project endpoints
+│   │
+│   ├── models/                 # SQLModel data models
+│   │   ├── __init__.py
+│   │   ├── feature.py
+│   │   ├── specification.py
+│   │   ├── refactor.py
+│   │   ├── adr.py
+│   │   ├── rule.py
+│   │   └── project.py
+│   │
+│   ├── services/               # Business logic layer
+│   │   ├── __init__.py
+│   │   ├── feature_service.py
+│   │   ├── spec_service.py
+│   │   ├── refactor_service.py
+│   │   ├── adr_service.py
+│   │   ├── rule_service.py
+│   │   ├── project_service.py
+│   │   ├── mcp_client.py      # MCP integration service
+│   │   └── ai_service.py      # AI model integration
+│   │
+│   ├── templates/              # Jinja2 templates
+│   │   ├── base.html          # Base template with layout
+│   │   ├── index.html         # Home page
+│   │   ├── features/
+│   │   ├── specifications/
+│   │   ├── refactors/
+│   │   ├── adrs/
+│   │   ├── rules/
+│   │   └── components/        # Reusable template components
+│   │
+│   └── static/                 # Static assets
+│       ├── css/
+│       │   └── tailwind.css
+│       ├── js/
+│       │   └── alpine.js
+│       └── images/
+│
+├── tests/                      # Test suite
+│   ├── __init__.py
+│   ├── conftest.py            # Pytest fixtures
+│   ├── test_api/              # API endpoint tests
+│   ├── test_services/         # Service layer tests
+│   └── test_models/           # Model tests
+│
+├── migrations/                 # Database migrations (Alembic)
+│   └── versions/
+│
+├── .github/
+│   └── copilot-instructions.md
+│
+├── pyproject.toml             # Project dependencies and config
+├── README.md                  # Project documentation
+├── ARCHITECTURE.md            # This file
+└── .gitignore
+```
 
-**Models Layer** (`app/models/`)
-- SQLModel entities for database tables
-- Type-safe with Pydantic validation
-- JSON fields for flexible data structures
+## Data Models
 
-**Views Layer** (`app/views/`)
-- Server-rendered pages with Jinja2
-- HTMX partial responses
-- Mobile-first templates
+### Core Entities
 
-### Frontend Layer
+#### Project
+- Represents a software project being managed
+- Contains metadata, settings, and configuration
+- Parent entity for Features, Specs, Refactors, ADRs, and Rules
 
-**Templates** (`frontend/templates/`)
-- Base layout with navigation
-- Page-specific templates
-- HTMX partials for dynamic updates
-- Alpine.js for client-side interactivity
+#### Feature
+- User-facing functionality or capability
+- Tracked from conception to completion
+- Links to Specifications and Refactors
 
-**Static Assets** (`frontend/static/`)
-- Tailwind CSS for styling
-- Minimal custom JavaScript
-- Icons and images
+#### Specification
+- Detailed technical specification
+- Describes implementation requirements
+- Can be generated by AI or written manually
 
-**PWA** (`frontend/pwa/`)
-- Service worker for offline support
-- Web app manifest
-- Installable on mobile and desktop
+#### Refactor
+- Code improvement or restructuring task
+- Contains before/after descriptions
+- Tracks technical debt reduction
 
-### Data Layer
+#### ADR (Architectural Decision Record)
+- Documents significant architectural decisions
+- Provides context, decision, and consequences
+- Maintains historical record of choices
 
-**Database**
-- SQLite for simplicity (default)
-- PostgreSQL for production (optional)
-- Async SQLAlchemy/SQLModel for ORM
-- Alembic for migrations
+#### Rule
+- Project-specific coding rules and conventions
+- Enforced by AI agents and linters
+- Can be shared across projects
 
-**Caching**
-- Redis for session storage
-- Background job queue (RQ/Arq)
+### Relationships
 
-## Design Principles
+```
+Project (1) ─────< (N) Feature
+                       │
+                       ├──< (N) Specification
+                       └──< (N) Refactor
 
-### 1. Separation of Concerns
+Project (1) ─────< (N) ADR
 
-- Clear boundaries between API, services, and data layers
-- No business logic in routes
-- Services encapsulate domain logic
-- Models only contain data structure
+Project (1) ─────< (N) Rule
+```
 
-### 2. Server-Driven UI
+## Service Layer Design
 
-- Minimize client-side JavaScript
-- HTMX for dynamic updates without SPA complexity
-- Progressive enhancement
-- Fast initial page loads
+### Service Responsibilities
 
-### 3. Offline-First
+Each service encapsulates business logic for its domain:
 
-- Service worker caches assets
-- Read-only offline access to cached data
-- Sync when connection restored
-- PWA for native-like experience
+1. **Validation**: Ensure data integrity before persistence
+2. **Business Rules**: Implement domain-specific rules
+3. **Coordination**: Orchestrate operations across multiple models
+4. **Integration**: Interface with external systems (MCP, AI)
 
-### 4. Type Safety
+### Example Service Pattern
 
-- Python type hints throughout
-- Pydantic for validation
-- SQLModel for type-safe ORM
-- Mypy for static type checking
+```python
+class FeatureService:
+    """Service for managing features with business logic."""
+    
+    def __init__(self, db: Session, mcp_client: MCPClient):
+        self.db = db
+        self.mcp_client = mcp_client
+    
+    async def create_feature(
+        self,
+        project_id: int,
+        feature_data: dict
+    ) -> Feature:
+        """Create a new feature with validation and MCP sync."""
+        # 1. Validate data
+        # 2. Create feature in database
+        # 3. Sync with MCP
+        # 4. Return created feature
+        pass
+    
+    async def generate_specifications(
+        self,
+        feature_id: int
+    ) -> List[Specification]:
+        """Generate specifications for a feature using AI."""
+        # 1. Fetch feature
+        # 2. Call AI service
+        # 3. Create specifications
+        # 4. Return generated specs
+        pass
+```
 
-### 5. Air-Gap Capable
+## API Design
 
-- No external dependencies at runtime
-- All assets served locally
-- Optional CDN fallbacks
-- Works without internet
+### RESTful Conventions
+
+- `GET /api/{resource}` - List resources
+- `GET /api/{resource}/{id}` - Get single resource
+- `POST /api/{resource}` - Create resource
+- `PUT /api/{resource}/{id}` - Update resource
+- `DELETE /api/{resource}/{id}` - Delete resource
+
+### HTMX-Specific Endpoints
+
+Some endpoints return HTML fragments for HTMX:
+
+- `GET /htmx/{resource}/{id}/edit` - Return edit form
+- `GET /htmx/{resource}/{id}/view` - Return view component
+
+### Response Formats
+
+JSON for API endpoints:
+```json
+{
+  "id": 1,
+  "title": "Feature Title",
+  "status": "active",
+  "created_at": "2025-01-15T10:30:00Z"
+}
+```
+
+HTML fragments for HTMX:
+```html
+<div id="feature-1" class="feature-card">
+  <h3>Feature Title</h3>
+  <span class="badge-active">Active</span>
+</div>
+```
+
+## Frontend Architecture
+
+### Mobile-First Design
+
+1. **Base**: Design for iPhone (375px)
+2. **Tablet**: Enhance for iPad (768px)
+3. **Desktop**: Optimize for desktop (1024px+)
+
+### HTMX Patterns
+
+#### Partial Updates
+```html
+<div hx-get="/htmx/features" 
+     hx-trigger="load" 
+     hx-swap="innerHTML">
+</div>
+```
+
+#### Form Submission
+```html
+<form hx-post="/api/features" 
+      hx-target="#feature-list" 
+      hx-swap="beforeend">
+</form>
+```
+
+#### Polling for Updates
+```html
+<div hx-get="/htmx/updates" 
+     hx-trigger="every 5s">
+</div>
+```
+
+### Alpine.js Usage
+
+Use Alpine.js for:
+- Local UI state (dropdowns, modals)
+- Client-side validation
+- Interactive forms
+- Conditional rendering
+
+Avoid Alpine.js for:
+- Server state management (use HTMX)
+- Complex data fetching (use HTMX)
+- Routing (use server-side routing)
 
 ## MCP Integration
 
-### Inbound (Receiving Updates)
+### Protocol Overview
+
+The Model Control Protocol (MCP) provides:
+- Project metadata synchronization
+- AI agent update notifications
+- Structured proposal submission
+- Refactor plan distribution
+
+### Integration Points
+
+1. **Metadata Sync**: Periodic sync of project data with MCP
+2. **Event Subscriptions**: Real-time updates from AI agents
+3. **Proposal Submission**: Send structured proposals to MCP
+4. **Status Updates**: Receive and display agent progress
+
+### MCP Client Service
+
+Located in `app/services/mcp_client.py`, provides:
+- Connection management
+- Request/response handling
+- Event stream processing
+- Error handling and retry logic
+
+## AI Integration
+
+### AI Service Responsibilities
+
+1. **Prompt Generation**: Create structured prompts for AI agents
+2. **Specification Generation**: Generate technical specs from features
+3. **Code Analysis**: Analyze code for refactor opportunities
+4. **Documentation**: Generate ADRs and documentation
+
+### Integration Pattern
+
+```python
+class AIService:
+    """Service for AI model integration."""
+    
+    async def generate_specification(
+        self,
+        feature: Feature,
+        context: dict
+    ) -> Specification:
+        """Generate specification using AI model."""
+        # 1. Build prompt with context
+        # 2. Call AI API
+        # 3. Parse and validate response
+        # 4. Create specification object
+        pass
+```
+
+## Testing Strategy
+
+### Test Pyramid
 
 ```
-AI Agent → MCP Server → POST /api/mcp/updates → AgentUpdate Entity
+       ┌───────────┐
+       │    E2E    │  <-- Few, critical user flows
+       └───────────┘
+      ┌─────────────┐
+      │ Integration │  <-- API and database tests
+      └─────────────┘
+    ┌─────────────────┐
+    │      Unit       │  <-- Many, fast, isolated tests
+    └─────────────────┘
 ```
 
-- Agents push updates via webhook-like mechanism
-- Updates stored for audit and processing
-- Can trigger actions (create features, specs, etc.)
+### Test Categories
 
-### Outbound (Querying & Proposals)
+1. **Unit Tests**: Test individual functions and classes in isolation
+2. **Integration Tests**: Test API endpoints with database
+3. **E2E Tests**: Test complete user flows with HTMX
 
-```
-Control Center → MCP Client → MCP Server → Project Data
-```
+### Testing Tools
 
-- Query projects, features, specs from MCP
-- Submit proposals for agent review
-- Pull latest status on demand
+- **pytest**: Test framework
+- **pytest-asyncio**: Async test support
+- **httpx**: API client for testing
+- **factory_boy**: Test data factories
+- **faker**: Generate test data
 
-## Security Model
+## Security Considerations
 
-### Current (V1)
+### Authentication & Authorization
 
-- Token-based API authentication
-- Environment variable secrets
-- No password storage
-- CORS protection
-
-### Future (V2)
-
-- WebAuthn/Passkeys support
+- JWT-based authentication (future)
 - Role-based access control
-- Audit logging
-- Rate limiting
+- API key management for MCP integration
 
-## Quality Enforcement
+### Data Protection
 
-### Static Analysis
+- Input validation on all endpoints
+- SQL injection prevention via SQLModel
+- XSS prevention in templates
+- CSRF protection for forms
 
+### External Integrations
+
+- Secure credential storage
+- API key rotation
+- Rate limiting on external calls
+- Error message sanitization
+
+## Performance Optimization
+
+### Database
+
+- Indexes on frequently queried fields
+- Connection pooling
+- Query optimization
+- Pagination for large datasets
+
+### Frontend
+
+- Lazy loading of components
+- Minimal JavaScript bundle
+- Optimized images
+- CDN for static assets
+
+### Caching
+
+- Redis for session storage (future)
+- HTTP caching headers
+- Template fragment caching
+- API response caching
+
+## Deployment Considerations
+
+### Environment Configuration
+
+- Development: SQLite, debug mode
+- Staging: PostgreSQL, testing environment
+- Production: PostgreSQL, optimized settings
+
+### Container Deployment
+
+```dockerfile
+FROM python:3.12-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY . .
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
-Code → Analyzer → Rules Engine → Gate Decision (WARN/FAIL)
-```
 
-- Python: import graph analysis with grimp
-- Generic: tag-based layer validation
-- Custom rules per project
-- CI integration for automated checks
+### Monitoring
 
-### Reports
+- Application logs
+- Error tracking (Sentry)
+- Performance metrics
+- Database query monitoring
 
-- **SoC Report**: Module dependencies, circular imports, layer violations
-- **Quality Report**: Lint, type check, test coverage, security scan results
+## Future Enhancements
 
-## Scalability Considerations
+### Planned Features
 
-### Current Scale
+1. **Real-time Collaboration**: Multiple users editing simultaneously
+2. **Advanced AI Integration**: More sophisticated AI assistance
+3. **Project Templates**: Pre-configured project setups
+4. **Import/Export**: Integration with external tools
+5. **Advanced Analytics**: Project metrics and insights
 
-- Single-process deployment
-- SQLite sufficient for small teams
-- In-process background jobs
+### Scalability
 
-### Future Scale
+- Microservices architecture (if needed)
+- Message queue for async tasks (Celery/RQ)
+- Distributed caching (Redis cluster)
+- Load balancing and horizontal scaling
 
-- Multi-worker deployment with Gunicorn/Uvicorn
-- PostgreSQL for concurrent access
-- Redis for distributed job queue
-- Horizontal scaling behind load balancer
+## References
 
-## Technology Choices (ADRs)
+- **FastAPI Documentation**: https://fastapi.tiangolo.com/
+- **SQLModel Documentation**: https://sqlmodel.tiangolo.com/
+- **HTMX Documentation**: https://htmx.org/
+- **TailwindCSS Documentation**: https://tailwindcss.com/
+- **Model Control Protocol**: (MCP documentation link)
 
-See `ADRs/` directory for detailed Architecture Decision Records:
+## Contributing
 
-1. **ADR-0001**: Use FastAPI for REST API
-2. **ADR-0002**: Server-driven UI with HTMX over React/Next.js
-3. **ADR-0003**: SQLite default, PostgreSQL optional
-4. **ADR-0004**: PWA for mobile/offline support
-5. **ADR-0005**: Token-based auth now, WebAuthn later
+When contributing to the architecture:
 
-## Deployment Options
+1. Follow the established patterns
+2. Document significant decisions in ADRs
+3. Update this document for major changes
+4. Discuss architectural changes with the team
+5. Maintain backward compatibility when possible
 
-### Option 1: Direct Python
-```bash
-uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
-```
+## Conclusion
 
-### Option 2: Docker Compose
-```bash
-docker-compose up
-```
-
-### Option 3: Kubernetes
-- Deploy as container
-- Use managed PostgreSQL
-- Redis cluster for jobs
-- Ingress for HTTPS
-
-### Option 4: Platform as a Service
-- Deploy to Render, Fly.io, Railway
-- Automatic HTTPS
-- Managed database
-- Easy scaling
+This architecture provides a solid foundation for the MCP Control Center while maintaining flexibility for future enhancements. The clean separation of concerns, type safety, and test coverage ensure long-term maintainability and AI extensibility.
