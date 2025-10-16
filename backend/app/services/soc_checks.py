@@ -32,7 +32,12 @@ class SoCAnalyzer:
 
             # Find circular dependencies
             chains = graph.find_illegal_dependencies_for_layers(
-                layers=("ui", "service", "domain", "infrastructure"),
+                layers={
+                    "ui": ["service"],
+                    "service": ["domain"],
+                    "domain": ["infrastructure"],
+                    "infrastructure": [],
+                },
                 containers=[package_name],
             )
 
