@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: ops/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:///./mcpcc.db
+      - MCP_BASE_URL=${MCP_BASE_URL:-http://localhost:8001}
+      - MCP_TOKEN=${MCP_TOKEN:-}
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+      - DEBUG=${DEBUG:-False}
+    volumes:
+      - ../backend:/app/backend
+      - ../frontend:/app/frontend
+      - app-data:/app/data
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+
+volumes:
+  app-data:
+  redis-data:

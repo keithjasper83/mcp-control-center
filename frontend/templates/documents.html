@@ -1,0 +1,490 @@
+{% extends "layout.html" %}
+
+{% block title %}Documentation - MCP Control Center{% endblock %}
+
+{% block content %}
+<div class="space-y-6" x-data="{ showUploadModal: false, showIngestModal: false }">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <h1 class="text-3xl font-bold text-gray-900">Documentation Ingestion</h1>
+        <div class="flex gap-3">
+            <button
+                @click="showUploadModal = true"
+                class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 font-semibold flex items-center gap-2"
+            >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                </svg>
+                Upload File
+            </button>
+            <button
+                @click="showIngestModal = true"
+                class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-semibold flex items-center gap-2"
+            >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Add Markdown
+            </button>
+        </div>
+    </div>
+
+    <!-- Info Card -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div class="flex items-start gap-3">
+            <svg class="w-6 h-6 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <div>
+                <h3 class="font-semibold text-blue-900 mb-1">Documentation Ingestion</h3>
+                <p class="text-blue-800 text-sm">
+                    Upload documentation files (Markdown, text) or paste content directly. 
+                    Documentation is stored as specifications and can be versioned, linked to features, and analyzed for SoC compliance.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter -->
+    <div class="bg-white rounded-lg shadow-md p-4">
+        <div class="flex flex-wrap gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Project</label>
+                <select
+                    id="filter-project"
+                    @change="loadDocuments()"
+                    class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                >
+                    <option value="">All Projects</option>
+                </select>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                <select
+                    id="filter-kind"
+                    @change="loadDocuments()"
+                    class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                >
+                    <option value="">All Types</option>
+                    <option value="API">API Docs</option>
+                    <option value="UI">UI Docs</option>
+                    <option value="DATA">Data Docs</option>
+                    <option value="SECURITY">Security Docs</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Message -->
+    <div id="status-message" class="hidden"></div>
+
+    <!-- Documents List -->
+    <div id="documents-list" class="space-y-4">
+        <!-- Documents will be loaded here -->
+    </div>
+
+    <!-- Upload File Modal -->
+    <div
+        x-show="showUploadModal"
+        x-cloak
+        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+    >
+        <div class="bg-white rounded-lg p-8 max-w-2xl w-full mx-4" @click.away="showUploadModal = false">
+            <h2 class="text-2xl font-bold mb-4">Upload Documentation File</h2>
+            <form id="upload-form" @submit.prevent="uploadFile()">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Project</label>
+                        <select
+                            id="upload-project"
+                            required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                        >
+                            <option value="">Select project...</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Documentation Type</label>
+                        <select
+                            id="upload-kind"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                        >
+                            <option value="API">API Documentation</option>
+                            <option value="UI">UI Documentation</option>
+                            <option value="DATA">Data Documentation</option>
+                            <option value="SECURITY">Security Documentation</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Version</label>
+                        <input
+                            type="text"
+                            id="upload-version"
+                            value="1.0.0"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                            placeholder="1.0.0"
+                        >
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">File</label>
+                        <input
+                            type="file"
+                            id="upload-file"
+                            required
+                            accept=".md,.txt,.markdown"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                        >
+                        <p class="text-sm text-gray-500 mt-1">Supported formats: Markdown (.md), Text (.txt)</p>
+                    </div>
+                    
+                    <div class="flex gap-3 pt-4">
+                        <button
+                            type="submit"
+                            class="flex-1 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 font-semibold"
+                        >
+                            Upload
+                        </button>
+                        <button
+                            type="button"
+                            @click="showUploadModal = false"
+                            class="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 font-semibold"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Ingest Markdown Modal -->
+    <div
+        x-show="showIngestModal"
+        x-cloak
+        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+    >
+        <div class="bg-white rounded-lg p-8 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto" @click.away="showIngestModal = false">
+            <h2 class="text-2xl font-bold mb-4">Add Markdown Documentation</h2>
+            <form id="ingest-form" @submit.prevent="ingestMarkdown()">
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Project</label>
+                            <select
+                                id="ingest-project"
+                                required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                            >
+                                <option value="">Select project...</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Documentation Type</label>
+                            <select
+                                id="ingest-kind"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                            >
+                                <option value="API">API Documentation</option>
+                                <option value="UI">UI Documentation</option>
+                                <option value="DATA">Data Documentation</option>
+                                <option value="SECURITY">Security Documentation</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                            <input
+                                type="text"
+                                id="ingest-title"
+                                required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                placeholder="Documentation title"
+                            >
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Version</label>
+                            <input
+                                type="text"
+                                id="ingest-version"
+                                value="1.0.0"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                placeholder="1.0.0"
+                            >
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Content (Markdown)</label>
+                        <textarea
+                            id="ingest-content"
+                            required
+                            rows="15"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 font-mono text-sm"
+                            placeholder="# Documentation Title
+
+## Overview
+Your markdown content here...
+
+## API Endpoints
+- GET /api/example
+- POST /api/example"
+                        ></textarea>
+                    </div>
+                    
+                    <div class="flex gap-3 pt-4">
+                        <button
+                            type="submit"
+                            class="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-semibold"
+                        >
+                            Ingest Documentation
+                        </button>
+                        <button
+                            type="button"
+                            @click="showIngestModal = false"
+                            class="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 font-semibold"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function loadProjects() {
+        try {
+            const response = await fetch('/api/projects');
+            const projects = await response.json();
+            
+            const selects = [
+                document.getElementById('filter-project'),
+                document.getElementById('upload-project'),
+                document.getElementById('ingest-project')
+            ];
+            
+            selects.forEach(select => {
+                if (!select) return;
+                const currentOptions = select.querySelectorAll('option:not(:first-child)');
+                currentOptions.forEach(opt => opt.remove());
+                
+                projects.forEach(project => {
+                    const option = document.createElement('option');
+                    option.value = project.id;
+                    option.textContent = project.name;
+                    select.appendChild(option);
+                });
+            });
+        } catch (error) {
+            console.error('Error loading projects:', error);
+        }
+    }
+
+    async function loadDocuments() {
+        try {
+            const projectId = document.getElementById('filter-project').value;
+            const kind = document.getElementById('filter-kind').value;
+            
+            let url = '/api/documents/list?';
+            if (projectId) url += `project_id=${projectId}&`;
+            if (kind) url += `kind=${kind}&`;
+            
+            const response = await fetch(url);
+            const documents = await response.json();
+            
+            const list = document.getElementById('documents-list');
+            
+            if (documents.length === 0) {
+                list.innerHTML = `
+                    <div class="text-center py-12 bg-white rounded-lg shadow-md">
+                        <svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        <p class="text-gray-500 text-lg">No documentation yet. Upload or add your first document!</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            list.innerHTML = documents.map(doc => {
+                const kindColors = {
+                    'API': 'bg-blue-100 text-blue-800',
+                    'UI': 'bg-purple-100 text-purple-800',
+                    'DATA': 'bg-green-100 text-green-800',
+                    'SECURITY': 'bg-red-100 text-red-800'
+                };
+                
+                return `
+                    <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="flex items-center gap-3">
+                                <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                                <div>
+                                    <h3 class="text-lg font-bold text-gray-900">Document #${doc.id}</h3>
+                                    <p class="text-sm text-gray-500">Project ID: ${doc.project_id} | Version: ${doc.version}</p>
+                                </div>
+                            </div>
+                            <span class="px-3 py-1 rounded-full text-sm font-medium ${kindColors[doc.kind] || 'bg-gray-100 text-gray-800'}">
+                                ${doc.kind}
+                            </span>
+                        </div>
+                        
+                        <div class="flex items-center gap-6 text-sm text-gray-600">
+                            <span>📄 ${doc.content_length} characters</span>
+                            <span>🔗 ${doc.links_count} links</span>
+                            <button
+                                onclick="viewDocument(${doc.id})"
+                                class="text-indigo-600 hover:text-indigo-800 font-medium"
+                            >
+                                View Content →
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } catch (error) {
+            console.error('Error loading documents:', error);
+            showStatus('Failed to load documents', 'error');
+        }
+    }
+
+    async function uploadFile() {
+        const projectId = document.getElementById('upload-project').value;
+        const kind = document.getElementById('upload-kind').value;
+        const version = document.getElementById('upload-version').value;
+        const fileInput = document.getElementById('upload-file');
+        
+        if (!fileInput.files.length) {
+            showStatus('Please select a file', 'error');
+            return;
+        }
+        
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+        
+        try {
+            const response = await fetch(`/api/documents/upload?project_id=${projectId}&kind=${kind}&version=${encodeURIComponent(version)}`, {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (!response.ok) {
+                throw new Error('Upload failed');
+            }
+            
+            const result = await response.json();
+            showStatus(`File uploaded successfully: ${result.size_bytes} bytes`, 'success');
+            document.getElementById('upload-form').reset();
+            await loadDocuments();
+        } catch (error) {
+            console.error('Error uploading file:', error);
+            showStatus('Failed to upload file', 'error');
+        }
+    }
+
+    async function ingestMarkdown() {
+        const projectId = document.getElementById('ingest-project').value;
+        const title = document.getElementById('ingest-title').value;
+        const kind = document.getElementById('ingest-kind').value;
+        const version = document.getElementById('ingest-version').value;
+        const content = document.getElementById('ingest-content').value;
+        
+        try {
+            const response = await fetch(`/api/documents/ingest/markdown?project_id=${projectId}&kind=${kind}&version=${encodeURIComponent(version)}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    project_id: parseInt(projectId),
+                    title: title,
+                    content: content,
+                    kind: kind,
+                    version: version,
+                    links: []
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error('Ingest failed');
+            }
+            
+            const result = await response.json();
+            showStatus(`Documentation ingested successfully: ${title}`, 'success');
+            document.getElementById('ingest-form').reset();
+            await loadDocuments();
+        } catch (error) {
+            console.error('Error ingesting markdown:', error);
+            showStatus('Failed to ingest documentation', 'error');
+        }
+    }
+
+    async function viewDocument(id) {
+        try {
+            const response = await fetch(`/api/documents/${id}`);
+            const doc = await response.json();
+            
+            // Create a modal to display content
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            modal.innerHTML = `
+                <div class="bg-white rounded-lg p-8 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+                    <div class="flex justify-between items-start mb-4">
+                        <h2 class="text-2xl font-bold">Document #${doc.id}</h2>
+                        <button onclick="this.closest('.fixed').remove()" class="text-gray-500 hover:text-gray-700">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="mb-4">
+                        <span class="inline-block px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm font-medium mr-2">
+                            ${doc.kind}
+                        </span>
+                        <span class="inline-block px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm font-medium">
+                            v${doc.version}
+                        </span>
+                    </div>
+                    <div class="prose max-w-none">
+                        <pre class="whitespace-pre-wrap text-sm bg-gray-50 p-4 rounded border border-gray-200">${doc.content}</pre>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        } catch (error) {
+            console.error('Error viewing document:', error);
+            showStatus('Failed to load document', 'error');
+        }
+    }
+
+    function showStatus(message, type) {
+        const statusEl = document.getElementById('status-message');
+        statusEl.className = `p-4 rounded-lg ${
+            type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+        }`;
+        statusEl.textContent = message;
+        statusEl.classList.remove('hidden');
+        
+        setTimeout(() => {
+            statusEl.classList.add('hidden');
+        }, 5000);
+    }
+
+    // Load data on page load
+    loadProjects();
+    loadDocuments();
+</script>
+{% endblock %}
